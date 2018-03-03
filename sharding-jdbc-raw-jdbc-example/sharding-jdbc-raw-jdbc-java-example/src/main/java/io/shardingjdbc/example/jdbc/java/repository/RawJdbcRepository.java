@@ -43,7 +43,7 @@ public class RawJdbcRepository {
         printInSelect();
         System.out.println("3.Hint Select--------------");
         printHintSimpleSelect();
-        dropTable();
+        //dropTable();
     }
     
     public void createTable() throws SQLException {

@@ -38,29 +38,29 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class TransactionMain {
-    
+
     private static boolean useNestedJob = true;
-    
+
     // CHECKSTYLE:OFF
     public static void main(final String[] args) throws SQLException {
-    // CHECKSTYLE:ON
+        // CHECKSTYLE:ON
         DataSource dataSource = getShardingDataSource();
         dropTable(dataSource);
         createTable(dataSource);
         insert(dataSource);
-        updateFailure(dataSource);
+        //updateFailure(dataSource);
     }
-    
+
     private static void createTable(final DataSource dataSource) throws SQLException {
         executeUpdate(dataSource, "CREATE TABLE IF NOT EXISTS t_order (order_id INT NOT NULL, user_id INT NOT NULL, status VARCHAR(50), PRIMARY KEY (order_id))");
         executeUpdate(dataSource, "CREATE TABLE IF NOT EXISTS t_order_item (item_id INT NOT NULL, order_id INT NOT NULL, user_id INT NOT NULL, PRIMARY KEY (item_id))");
     }
-    
+
     private static void dropTable(final DataSource dataSource) throws SQLException {
         executeUpdate(dataSource, "DROP TABLE IF EXISTS t_order_item");
         executeUpdate(dataSource, "DROP TABLE IF EXISTS t_order");
     }
-    
+
     private static void executeUpdate(final DataSource dataSource, final String sql) throws SQLException {
         try (
                 Connection conn = dataSource.getConnection();
@@ -68,7 +68,7 @@ public final class TransactionMain {
             preparedStatement.executeUpdate();
         }
     }
-    
+
     private static void insert(final DataSource dataSource) throws SQLException {
         String sql = "INSERT INTO t_order VALUES (1000, 10, 'INIT');";
         try (Connection conn = dataSource.getConnection();
@@ -76,7 +76,7 @@ public final class TransactionMain {
             preparedStatement.executeUpdate();
         }
     }
-    
+
     private static void updateFailure(final DataSource dataSource) throws SQLException {
         String sql1 = "UPDATE t_order SET status='UPDATE_1' WHERE user_id=10 AND order_id=1000";
         String sql2 = "UPDATE t_order SET not_existed_column=1 WHERE user_id=1 AND order_id=?";
@@ -102,33 +102,34 @@ public final class TransactionMain {
             }
         }
     }
-    
+
     private static DataSource getShardingDataSource() throws SQLException {
-        ShardingRuleConfiguration shardingRuleConfig = new ShardingRuleConfiguration();
+
         TableRuleConfiguration orderTableRuleConfig = new TableRuleConfiguration();
         orderTableRuleConfig.setLogicTable("t_order");
         orderTableRuleConfig.setActualDataNodes("ds_trans_${0..1}.t_order_${0..1}");
-        shardingRuleConfig.getTableRuleConfigs().add(orderTableRuleConfig);
-        
+
         TableRuleConfiguration orderItemTableRuleConfig = new TableRuleConfiguration();
         orderItemTableRuleConfig.setLogicTable("t_order_item");
         orderItemTableRuleConfig.setActualDataNodes("ds_trans_${0..1}.t_order_item_${0..1}");
+
+        ShardingRuleConfiguration shardingRuleConfig = new ShardingRuleConfiguration();
+        shardingRuleConfig.getTableRuleConfigs().add(orderTableRuleConfig);
         shardingRuleConfig.getTableRuleConfigs().add(orderItemTableRuleConfig);
-        
         shardingRuleConfig.getBindingTableGroups().add("t_order, t_order_item");
-        
         shardingRuleConfig.setDefaultDatabaseShardingStrategyConfig(new StandardShardingStrategyConfiguration("user_id", ModuloShardingAlgorithm.class.getName()));
         shardingRuleConfig.setDefaultTableShardingStrategyConfig(new StandardShardingStrategyConfiguration("order_id", ModuloShardingAlgorithm.class.getName()));
+
         return new ShardingDataSource(shardingRuleConfig.build(createDataSourceMap()));
     }
-    
+
     private static Map<String, DataSource> createDataSourceMap() {
         Map<String, DataSource> result = new HashMap<>(2, 1);
         result.put("ds_trans_0", createDataSource("ds_trans_0"));
         result.put("ds_trans_1", createDataSource("ds_trans_1"));
         return result;
     }
-    
+
     private static DataSource createDataSource(final String dataSourceName) {
         BasicDataSource result = new BasicDataSource();
         result.setDriverClassName(com.mysql.jdbc.Driver.class.getName());
@@ -138,17 +139,17 @@ public final class TransactionMain {
         result.setPassword("123456");
         return result;
     }
-    
+
     private static DataSource createTransactionLogDataSource() {
         BasicDataSource result = new BasicDataSource();
         result.setDriverClassName(com.mysql.jdbc.Driver.class.getName());
         //result.setUrl("jdbc:mysql://localhost:3306/trans_log");
-        result.setUrl("jdbc:mysql://192.168.99.100:3306/trans_log");
+        result.setUrl("jdbc:mysql://192.168.99.100:3306/ds_trans_log");
         result.setUsername("root");
         result.setPassword("123456");
         return result;
     }
-    
+
     private static SoftTransactionConfiguration getSoftTransactionConfiguration(final DataSource dataSource) {
         SoftTransactionConfiguration result = new SoftTransactionConfiguration(dataSource);
         if (useNestedJob) {

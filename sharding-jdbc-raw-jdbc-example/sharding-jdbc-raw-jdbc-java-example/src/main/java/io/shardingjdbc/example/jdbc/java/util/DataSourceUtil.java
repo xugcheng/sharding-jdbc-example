@@ -23,11 +23,11 @@ import javax.sql.DataSource;
 
 public class DataSourceUtil {
      
-    private static final String URL_PREFIX = "jdbc:mysql://localhost:3306/";
+    private static final String URL_PREFIX = "jdbc:mysql://192.168.99.100:3306/";
     
     private static final String USER_NAME = "root";
     
-    private static final String PASSWORD = "";
+    private static final String PASSWORD = "123456";
     
     public static DataSource createDataSource(final String dataSourceName) {
         BasicDataSource result = new BasicDataSource();
