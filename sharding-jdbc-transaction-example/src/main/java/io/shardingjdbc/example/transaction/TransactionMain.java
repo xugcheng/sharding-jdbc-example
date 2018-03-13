@@ -36,6 +36,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 public final class TransactionMain {
 
@@ -70,9 +71,13 @@ public final class TransactionMain {
     }
 
     private static void insert(final DataSource dataSource) throws SQLException {
-        String sql = "INSERT INTO t_order VALUES (1000, 10, 'INIT');";
+        //String sql = "INSERT INTO t_order VALUES (1000, 10, 'INIT');";
+        String sql = "insert into t_order values(?,?,?)";
         try (Connection conn = dataSource.getConnection();
              PreparedStatement preparedStatement = conn.prepareStatement(sql)) {
+            preparedStatement.setObject(1, 1000);
+            preparedStatement.setObject(2, 10);
+            preparedStatement.setObject(3, "INIT");
             preparedStatement.executeUpdate();
         }
     }
@@ -117,10 +122,14 @@ public final class TransactionMain {
         shardingRuleConfig.getTableRuleConfigs().add(orderTableRuleConfig);
         shardingRuleConfig.getTableRuleConfigs().add(orderItemTableRuleConfig);
         shardingRuleConfig.getBindingTableGroups().add("t_order, t_order_item");
+
         shardingRuleConfig.setDefaultDatabaseShardingStrategyConfig(new StandardShardingStrategyConfiguration("user_id", ModuloShardingAlgorithm.class.getName()));
         shardingRuleConfig.setDefaultTableShardingStrategyConfig(new StandardShardingStrategyConfiguration("order_id", ModuloShardingAlgorithm.class.getName()));
 
-        return new ShardingDataSource(shardingRuleConfig.build(createDataSourceMap()));
+        Properties props = new Properties();
+        props.put("sql.show", true);
+        props.put("executor.size", 10);
+        return new ShardingDataSource(shardingRuleConfig.build(createDataSourceMap()), new HashMap<>(), props);
     }
 
     private static Map<String, DataSource> createDataSourceMap() {

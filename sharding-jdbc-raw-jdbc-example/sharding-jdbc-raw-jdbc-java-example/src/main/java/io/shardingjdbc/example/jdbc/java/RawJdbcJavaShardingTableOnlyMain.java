@@ -48,7 +48,9 @@ public final class RawJdbcJavaShardingTableOnlyMain {
         //设置默认的table分片规则
         shardingRuleConfig.setDefaultTableShardingStrategyConfig(new StandardShardingStrategyConfiguration("user_id", ModuloShardingDatabaseAlgorithm.class.getName()));
 
-        return ShardingDataSourceFactory.createDataSource(createDataSourceMap(), shardingRuleConfig, new HashMap<String, Object>(), new Properties());
+        Properties props = new Properties();
+        props.put("sql.show", true);
+        return ShardingDataSourceFactory.createDataSource(createDataSourceMap(), shardingRuleConfig, new HashMap<String, Object>(), props);
     }
 
     private static TableRuleConfiguration getOrderTableRuleConfiguration() {
